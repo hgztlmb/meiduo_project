@@ -10,11 +10,22 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 
-import os
+import os ,sys
+
+
+# print(sys.path)
+'''
+/home/python/.virtualenvs/meiduo_mall/bin/python /home/python/meiduo_project/meiduo_mall/manage.py runserver
+['/home/python/meiduo_project/meiduo_mall', '/home/python/meiduo_project/meiduo_mall', '/opt/pycharm-2019.1.2/helpers/pycharm_display', '/home/python/.virtualenvs/meiduo_mall/lib/python36.zip', '/home/python/.virtualenvs/meiduo_mall/lib/python3.6', '/home/python/.virtualenvs/meiduo_mall/lib/python3.6/lib-dynload', '/usr/lib/python3.6', '/home/python/.virtualenvs/meiduo_mall/lib/python3.6/site-packages', '/opt/pycharm-2019.1.2/helpers/pycharm_matplotlib_backend']
+['/home/python/meiduo_project/meiduo_mall', '/home/python/meiduo_project/meiduo_mall', '/opt/pycharm-2019.1.2/helpers/pycharm_display', '/home/python/.virtualenvs/meiduo_mall/lib/python36.zip', '/home/python/.virtualenvs/meiduo_mall/lib/python3.6', '/home/python/.virtualenvs/meiduo_mall/lib/python3.6/lib-dynload', '/usr/lib/python3.6', '/home/python/.virtualenvs/meiduo_mall/lib/python3.6/site-packages', '/opt/pycharm-2019.1.2/helpers/pycharm_matplotlib_backend']
+Performing system checks...
+'''
+
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+sys.path.insert(0,os.path.join(BASE_DIR, 'apps'))
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
 
@@ -35,6 +46,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    'users'
 ]
 
 MIDDLEWARE = [
@@ -52,7 +65,7 @@ ROOT_URLCONF = 'meiduo_mall.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.jinja2.Jinja2',
-        'DIRS': [os.path.join(BASE_DIR, 'temp;ates')],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -117,6 +130,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
 
 STATIC_URL = '/static/'
+STATICFILES_DIRS = [os.path.join(BASE_DIR,'static')]
 
 CACHES = {
     "default": {  # 默认
@@ -177,3 +191,5 @@ LOGGING = {
         },
     }
 }
+
+AUTH_USER_MODEL = 'users.User'
