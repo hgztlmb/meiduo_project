@@ -13,15 +13,6 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 import os ,sys
 
 
-# print(sys.path)
-'''
-/home/python/.virtualenvs/meiduo_mall/bin/python /home/python/meiduo_project/meiduo_mall/manage.py runserver
-['/home/python/meiduo_project/meiduo_mall', '/home/python/meiduo_project/meiduo_mall', '/opt/pycharm-2019.1.2/helpers/pycharm_display', '/home/python/.virtualenvs/meiduo_mall/lib/python36.zip', '/home/python/.virtualenvs/meiduo_mall/lib/python3.6', '/home/python/.virtualenvs/meiduo_mall/lib/python3.6/lib-dynload', '/usr/lib/python3.6', '/home/python/.virtualenvs/meiduo_mall/lib/python3.6/site-packages', '/opt/pycharm-2019.1.2/helpers/pycharm_matplotlib_backend']
-['/home/python/meiduo_project/meiduo_mall', '/home/python/meiduo_project/meiduo_mall', '/opt/pycharm-2019.1.2/helpers/pycharm_display', '/home/python/.virtualenvs/meiduo_mall/lib/python36.zip', '/home/python/.virtualenvs/meiduo_mall/lib/python3.6', '/home/python/.virtualenvs/meiduo_mall/lib/python3.6/lib-dynload', '/usr/lib/python3.6', '/home/python/.virtualenvs/meiduo_mall/lib/python3.6/site-packages', '/opt/pycharm-2019.1.2/helpers/pycharm_matplotlib_backend']
-Performing system checks...
-'''
-
-
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -116,15 +107,15 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/1.11/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'zh-hans'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Shanghai'
 
 USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = True
+USE_TZ = False
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
