@@ -25,7 +25,8 @@
         </div>
         <div class="reg_form clearfix" id="app" v-cloak>
             <form method="post" class="register_form" @submit="on_submit">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+{#                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">#}
+                    {{ csrf_input }}
                 <ul>
                     <li>
                         <label>用户名:</label>

@@ -4,6 +4,7 @@ from django.views import View
 import re
 from django.contrib.auth import login
 from .models import User
+from meiduo_mall.utils.response_code import RETCODE
 
 
 class RegisterView(View):
@@ -36,3 +37,17 @@ class RegisterView(View):
         login(request, user)
 
         return redirect('/')
+
+
+class UsernameCountView(View):
+    def get(self, request, username):
+        count = User.objects.filter(username=username).count()
+        response_data = {'count': count, 'code': RETCODE.OK, 'errmsg': 'ok'}
+        return http.JsonResponse(response_data)
+
+
+class MobileCountView(View):
+    def get(self, request, mobile):
+        count = User.objects.filter(mobile=mobile).count()
+        response_data = {'count': count, 'code': RETCODE.OK, 'errmsg': 'ok'}
+        return http.JsonResponse(response_data)
