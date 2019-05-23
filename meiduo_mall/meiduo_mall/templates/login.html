@@ -14,6 +14,7 @@
 <body>
 <div class="login_top clearfix">
     <a href="{{ url('contents:index') }}" class="login_logo"><img src="{{ static('images/logo02.png') }}"></a>
+{#    <a href="/" class="login_logo"><img src="{{ static('images/logo02.png') }}"></a>#}
 </div>
 
 <div class="login_form_bg" id="app">
@@ -28,8 +29,8 @@
                 <div class="form_input cur">
                     <form method="post" id="login-form" @submit="on_submit">
 
-                        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-                        <!-- {{ csrf_input }} -->
+{#                        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">#}
+                        {{ csrf_input }}
 
                         <input type="text" v-model="username" @blur="check_username" name="username" class="name_input"
                                placeholder="请输入用户名或手机号">
@@ -52,6 +53,7 @@
                 <a @click="qq_login" class="qq_login">QQ</a>
                 <a href="#" class="weixin_login">微信</a>
                 <a href="{{ url('users:register') }}" class="register_btn">立即注册</a>
+{#                <a href="/register/" class="register_btn">立即注册</a>#}
             </div>
 
         </div>

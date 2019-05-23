@@ -3,7 +3,8 @@ var vm = new Vue({
     // 修改Vue变量的读取语法，避免和django模板语法冲突
     delimiters: ['[[', ']]'],
     data: {
-        host: host,
+        // host: host,
+        host,
         error_name: false,
         error_password: false,
         error_check_password: false,
@@ -67,6 +68,7 @@ var vm = new Vue({
             // 检查重名
             if (this.error_name == false) {
                 var url = this.host + '/usernames/' + this.username + '/count/';
+                // var url = 'http://127.0.0.1:8000' + '/usernames/' + this.username + '/count/';
                 axios.get(url, {
                     responseType: 'json'
                 })
