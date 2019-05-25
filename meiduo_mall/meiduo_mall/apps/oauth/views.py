@@ -49,6 +49,7 @@ class QQAuthView(View):
             access_token = auth_qq.get_access_token(code)
             # 获取openid
             openid = auth_qq.get_open_id(access_token)
+            print(openid)
         except Exception as e:
             logger.error(e)
             return http.HttpResponseServerError("QQ的OAuth2.0认证失败")
@@ -57,7 +58,7 @@ class QQAuthView(View):
             oauth_qq = OAuthQQUser.objects.get(openid=openid)
         # 没有则去绑定
         except OAuthQQUser.DoesNotExist:
-            generate_openid_signature(openid)
+            openid = generate_openid_signature(openid)
             return render(request,'oauth_callback.html',{'openid':openid})
         # 存在则直接登陆成功,获取所关联的用户
         else:
@@ -79,6 +80,7 @@ class QQAuthView(View):
         password = query_dict.get('password')
         sms_code = query_dict.get('sms_code')
         openid = query_dict.get('openid')
+        print(openid)
         # 校验
         if all([ password, mobile, sms_code]) is False:
             return http.HttpResponse("缺少必要参数")
