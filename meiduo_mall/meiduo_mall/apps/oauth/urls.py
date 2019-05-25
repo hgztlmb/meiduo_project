@@ -13,14 +13,11 @@ Including another URLconf
     1. Import the include() function: from django.conf.urls import url, include
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
-from django.conf.urls import url, include
-from django.contrib import admin
+from django.conf.urls import url
+from . import views
 
 urlpatterns = [
-    url(r'^admin/', admin.site.urls),
-    url(r'^', include('users.urls', namespace='users')),
-    url(r'^', include('verifications.urls', namespace='verifications')),
-    url(r'^', include('contents.urls', namespace='contents')),
-    url(r'^', include('oauth.urls', namespace='oauth')),
-]
 
+    url(r'^qq/authorization/$', views.QQAuthURLView.as_view()),
+    url(r'^oauth_callback$', views.QQAuthView.as_view()),
+]

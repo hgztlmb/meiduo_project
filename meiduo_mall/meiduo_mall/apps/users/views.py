@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django import http
 from django.views import View
 import re
-from django.contrib.auth import login, authenticate
+from django.contrib.auth import login, authenticate, logout, mixins
 from .models import User
 from meiduo_mall.utils.response_code import RETCODE
 from django_redis import get_redis_connection
@@ -10,7 +10,7 @@ from django.conf import settings
 
 
 class RegisterView(View):
-    # 展示注册界面
+    """展示注册界面"""
     def get(self, request):
 
         return render(request, 'register.html')
@@ -37,8 +37,8 @@ class RegisterView(View):
             return http.HttpResponse("您输入的手机号格式不正确")
         # 校验短信验证码
         redis_conn = get_redis_connection('verify_code')
-        sms_code_server = redis_conn.get("sms_%s"%mobile)
-        redis_conn.delete("sms_%s" %mobile)
+        sms_code_server = redis_conn.get("sms_%s" % mobile)
+        redis_conn.delete("sms_%s" % mobile)
         if sms_code_server is None:
             return http.HttpResponse("短信验证码过期")
         sms_code_server = sms_code_server.decode()
@@ -51,35 +51,41 @@ class RegisterView(View):
         # 返回主页
         return redirect('/')
 
-# 检查用户名是否重复
+
+
 class UsernameCountView(View):
+    """检查用户名是否重复"""
     def get(self, request, username):
         count = User.objects.filter(username=username).count()
         response_data = {'count': count, 'code': RETCODE.OK, 'errmsg': 'ok'}
         return http.JsonResponse(response_data)
 
-# 检查手机号是否重复
+
+
 class MobileCountView(View):
+    """检查手机号是否重复"""
     def get(self, request, mobile):
         count = User.objects.filter(mobile=mobile).count()
         response_data = {'count': count, 'code': RETCODE.OK, 'errmsg': 'ok'}
         return http.JsonResponse(response_data)
 
+
 # 登录界面
 class LoginView(View):
-    def get(self,request):
-        return render(request,'login.html')
+    def get(self, request):
+        return render(request, 'login.html')
+
     # 获取登录信息
-    def post(self,request):
+    def post(self, request):
         username = request.POST.get('username')
         password = request.POST.get('password')
         remember = request.POST.get('remember')
         # 认证用户名和密码（有一个为None即返回None）
-        user = authenticate(request,username=username,password=password)
+        user = authenticate(request, username=username, password=password)
         if user is None:
-            return render(request,'login.html',{'account_errmsg':'用户名或密码错误'})
+            return render(request, 'login.html', {'account_errmsg': '用户名或密码错误'})
         # 保持登录状态
-        login(request,user)
+        login(request, user)
         # 设置未勾选记住密码时session为关闭浏览器即失效
         if remember != 'on':
             request.session.set_expiry(0)
@@ -87,6 +93,21 @@ class LoginView(View):
         next = request.GET.get('next')
         response = redirect(next or '/')
         # 设置cookie
-        response.set_cookie('username',username,max_age=settings.SESSION_COOKIE_AGE if remember else None)
+        response.set_cookie('username', user.username, max_age=settings.SESSION_COOKIE_AGE if remember else None)
         return response
 
+
+class LogoutView(View):
+    """退出登录"""
+    def get(self, request):
+        logout(request)
+
+        response = redirect('/login/')
+        response.delete_cookie('username')
+        return response
+
+
+class UserInfoView(mixins.LoginRequiredMixin,View):
+    """mixins扩展用来返回进入登录页面之前的页面"""
+    def get(self,request):
+        return render(request,'user_center_info.html')
