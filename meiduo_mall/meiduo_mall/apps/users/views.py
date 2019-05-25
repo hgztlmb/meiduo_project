@@ -1,12 +1,15 @@
 from django.shortcuts import render, redirect
 from django import http
 from django.views import View
-import re
+import re,json
 from django.contrib.auth import login, authenticate, logout, mixins
+
+from .utils import generate_email_verify_url,check_verify_token
 from .models import User
 from meiduo_mall.utils.response_code import RETCODE
 from django_redis import get_redis_connection
 from django.conf import settings
+from celery_tasks.email.tasks import send_verify_email
 
 
 class RegisterView(View):
@@ -111,3 +114,44 @@ class UserInfoView(mixins.LoginRequiredMixin,View):
     """mixins扩展用来返回进入登录页面之前的页面"""
     def get(self,request):
         return render(request,'user_center_info.html')
+
+
+class EmailView(View):
+    """设置邮箱"""
+    # 接受请求
+    def put(self,request):
+        json_dict = json.loads(request.body.decode())
+        email = json_dict.get('email')
+
+        # 校验
+        if not email:
+            return http.JsonResponse({'code':RETCODE.NECESSARYPARAMERR,'errmsg':'缺少必要参数'})
+        if not re.match(r'^[a-z0-9][\w\.\-]*@[a-z0-9\-]+(\.[a-z]{2,5}){1,2}$', email):
+            return http.JsonResponse({'code':RETCODE.EMAILERR,'errmsg':'邮箱f错误'})
+        # 修改邮箱字段
+        user = request.user
+        User.objects.filter(username=user.username,email='').update(email=email)
+        # 生成激活链接
+        verify_url = generate_email_verify_url(user)
+        print(verify_url)
+        # celery 异步发邮件
+        send_verify_email.delay(email,verify_url)
+        return http.JsonResponse({'code':RETCODE.OK,'errmsg':'添加邮件成功'})
+
+
+class VerifyEmailUrl(View):
+    """邮箱激活"""
+    def get(self,request):
+        token = request.GET.get('token')# 获取token
+        # 校验
+        if token is None:
+            return http.HttpResponseForbidden("缺少token")
+        # 解密token并获取user
+        user = check_verify_token(token)
+        if user is None:
+            return http.HttpResponseForbidden("token无效")
+        # 设置email_active为True
+        user.email_active = True
+        user.save()
+        return redirect('/info/')
+

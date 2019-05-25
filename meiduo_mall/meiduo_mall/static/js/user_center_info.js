@@ -27,7 +27,7 @@ var vm = new Vue({
     methods: {
         // 检查email格式
         check_email(){
-            var re = /^[a-z0-9][\w\.\-]*@[a-z0-9\-]+(\.[a-z]{2,5}){1,2}$/;
+            var re = /^[A-Za-z\d]+([-_.][A-Za-z\d]+)*@([A-Za-z\d]+[-.])+[A-Za-z\d]{2,4}$/;
             if (re.test(this.email)) {
                 this.error_email = false;
             } else {
