@@ -1,19 +1,20 @@
 from django.shortcuts import render, redirect
 from django import http
 from django.views import View
-import re,json
+import re, json
 from django.contrib.auth import login, authenticate, logout, mixins
-
-from .utils import generate_email_verify_url,check_verify_token
+from .utils import generate_email_verify_url, check_verify_token
 from .models import User
 from meiduo_mall.utils.response_code import RETCODE
 from django_redis import get_redis_connection
 from django.conf import settings
 from celery_tasks.email.tasks import send_verify_email
+from meiduo_mall.utils.view import LoginRequiredView
 
 
 class RegisterView(View):
     """展示注册界面"""
+
     def get(self, request):
 
         return render(request, 'register.html')
@@ -52,21 +53,23 @@ class RegisterView(View):
         # 保留登录状态
         login(request, user)
         # 返回主页
-        return redirect('/')
-
+        response = redirect('/')
+        response.set_cookie('username', user.username, max_age=settings.SESSION_COOKIE_AGE)
+        return response
 
 
 class UsernameCountView(View):
     """检查用户名是否重复"""
+
     def get(self, request, username):
         count = User.objects.filter(username=username).count()
         response_data = {'count': count, 'code': RETCODE.OK, 'errmsg': 'ok'}
         return http.JsonResponse(response_data)
 
 
-
 class MobileCountView(View):
     """检查手机号是否重复"""
+
     def get(self, request, mobile):
         count = User.objects.filter(mobile=mobile).count()
         response_data = {'count': count, 'code': RETCODE.OK, 'errmsg': 'ok'}
@@ -102,6 +105,7 @@ class LoginView(View):
 
 class LogoutView(View):
     """退出登录"""
+
     def get(self, request):
         logout(request)
 
@@ -110,39 +114,42 @@ class LogoutView(View):
         return response
 
 
-class UserInfoView(mixins.LoginRequiredMixin,View):
+class UserInfoView(mixins.LoginRequiredMixin, View):
     """mixins扩展用来返回进入登录页面之前的页面"""
-    def get(self,request):
-        return render(request,'user_center_info.html')
+
+    def get(self, request):
+        return render(request, 'user_center_info.html')
 
 
 class EmailView(View):
     """设置邮箱"""
+
     # 接受请求
-    def put(self,request):
+    def put(self, request):
         json_dict = json.loads(request.body.decode())
         email = json_dict.get('email')
 
         # 校验
         if not email:
-            return http.JsonResponse({'code':RETCODE.NECESSARYPARAMERR,'errmsg':'缺少必要参数'})
+            return http.JsonResponse({'code': RETCODE.NECESSARYPARAMERR, 'errmsg': '缺少必要参数'})
         if not re.match(r'^[a-z0-9][\w\.\-]*@[a-z0-9\-]+(\.[a-z]{2,5}){1,2}$', email):
-            return http.JsonResponse({'code':RETCODE.EMAILERR,'errmsg':'邮箱f错误'})
+            return http.JsonResponse({'code': RETCODE.EMAILERR, 'errmsg': '邮箱f错误'})
         # 修改邮箱字段
         user = request.user
-        User.objects.filter(username=user.username,email='').update(email=email)
+        User.objects.filter(username=user.username, email='').update(email=email)
         # 生成激活链接
         verify_url = generate_email_verify_url(user)
         print(verify_url)
         # celery 异步发邮件
-        send_verify_email.delay(email,verify_url)
-        return http.JsonResponse({'code':RETCODE.OK,'errmsg':'添加邮件成功'})
+        send_verify_email.delay(email, verify_url)
+        return http.JsonResponse({'code': RETCODE.OK, 'errmsg': '添加邮件成功'})
 
 
 class VerifyEmailUrl(View):
     """邮箱激活"""
-    def get(self,request):
-        token = request.GET.get('token')# 获取token
+
+    def get(self, request):
+        token = request.GET.get('token')  # 获取token
         # 校验
         if token is None:
             return http.HttpResponseForbidden("缺少token")
@@ -154,4 +161,10 @@ class VerifyEmailUrl(View):
         user.email_active = True
         user.save()
         return redirect('/info/')
+
+
+class AddressView(LoginRequiredView):
+    """收货地址页面展示"""
+    def get(self,request):
+        return render(request, 'user_center_site.html')
 
