@@ -1,15 +1,17 @@
 from django.shortcuts import render, redirect
 from django import http
 from django.views import View
-import re, json
+import re, json, logging
 from django.contrib.auth import login, authenticate, logout, mixins
 from .utils import generate_email_verify_url, check_verify_token
-from .models import User
+from .models import User, Address
 from meiduo_mall.utils.response_code import RETCODE
 from django_redis import get_redis_connection
 from django.conf import settings
 from celery_tasks.email.tasks import send_verify_email
 from meiduo_mall.utils.view import LoginRequiredView
+
+logger = logging.getLogger('django')
 
 
 class RegisterView(View):
@@ -165,6 +167,251 @@ class VerifyEmailUrl(View):
 
 class AddressView(LoginRequiredView):
     """收货地址页面展示"""
+
+    def get(self, request):
+        user = request.user
+        # 查询所有收货地址
+        address_qs = Address.objects.filter(user=user, is_deleted=False)
+        # 定义列表包装地址字典数据
+        address_list = []
+        for address_model in address_qs:
+            address_list.append({
+                'id': address_model.id,
+                'title': address_model.title,
+                'receiver': address_model.receiver,
+                'province': address_model.province.name,
+                'province_id': address_model.province.id,
+                'city': address_model.city.name,
+                'city_id': address_model.city.id,
+                'district': address_model.district.name,
+                'district_id': address_model.district.id,
+                'place': address_model.place,
+                'mobile': address_model.mobile,
+                'tel': address_model.tel,
+                'email': address_model.email
+            })
+        print(address_list)
+        # 外层包装
+        context = {
+            'addresses': address_list,
+            'default_address_id': user.default_address_id
+        }
+        print(context)
+        # 渲染
+        return render(request, 'user_center_site.html', context)
+
+
+class CreateAdderssView(LoginRequiredView):
+    """新增地址"""
+
+    def post(self, request):
+        # 地址不能超过20个
+        user = request.user
+        count = Address.objects.filter(user=user, is_deleted=False).count()
+        if count >= 20:
+            return http.JsonResponse({'code': RETCODE.THROTTLINGERR, 'errmsg': '超出上限'})
+        # 接收数据
+        json_dict = json.loads(request.body.decode())
+        title = json_dict.get('title')
+        receiver = json_dict.get('receiver')
+        province_id = json_dict.get('province_id')
+        city_id = json_dict.get('city_id')
+        district_id = json_dict.get('district_id')
+        place = json_dict.get('place')
+        mobile = json_dict.get('mobile')
+        tel = json_dict.get('tel')
+        email = json_dict.get('email')
+        # 校验
+        if all([title, receiver, province_id, city_id, district_id, place, mobile]) is False:
+            return http.HttpResponseForbidden("缺少必要参数")
+        if not re.match(r'^1[345789]\d{9}$', mobile):
+            return http.HttpResponseForbidden("mobile格式错误")
+        if tel:
+            if not re.match(r'^(0[0-9]{2,3}-)?([2-9][0-9]{6,7})+(-[0-9]{1,4})?$', tel):
+                return http.HttpResponseForbidden("tel格式错误")
+        if email:
+            if not re.match(r'^[a-z0-9][\w\.\-]*@[a-z0-9\-]+(\.[a-z]{2,5}){1,2}$', email):
+                return http.HttpResponseForbidden("email格式错误")
+        # 保存数据
+        try:
+            address_model = Address.objects.create(
+                user=request.user,
+                title=title,
+                receiver=receiver,
+                province_id=province_id,
+                city_id=city_id,
+                district_id=district_id,
+                place=place,
+                mobile=mobile,
+                tel=tel,
+                email=email
+            )
+        except Exception as e:
+            logger.error(e)
+            return http.JsonResponse({'code': RETCODE.PARAMERR, 'errmsg': '新增地址失败'})
+        # 没有默认地址则设为默认地址
+        if user.default_address is None:
+            user.default_address = address_model
+            user.save()
+        # 　数据转换为字典
+        address_dict = {
+            'id': address_model.id,
+            'title': address_model.title,
+            'receiver': address_model.receiver,
+            'province_id': address_model.province.id,
+            'province': address_model.province.name,
+            'city_id': address_model.city.id,
+            'city': address_model.city.name,
+            'district_id': address_model.district.id,
+            'district': address_model.district.name,
+            'place': address_model.place,
+            'mobile': address_model.mobile,
+            'tel': address_model.tel,
+            'email': address_model.email
+        }
+        # 响应
+        return http.JsonResponse({'code': RETCODE.OK, 'errmsg': '新增地址成功', 'address': address_dict})
+
+
+class UpdateDestroyAddressView(LoginRequiredView):
+    """修改删除收货地址"""
+
+    def put(self, request, address_id):
+        """接收请求体数据"""
+        json_dict = json.loads(request.body.decode())
+        title = json_dict.get('title')
+        receiver = json_dict.get('receiver')
+        province_id = json_dict.get('province_id')
+        city_id = json_dict.get('city_id')
+        district_id = json_dict.get('district_id')
+        place = json_dict.get('place')
+        mobile = json_dict.get('mobile')
+        tel = json_dict.get('tel')
+        email = json_dict.get('email')
+        # 校验
+        if all([title, receiver, province_id, city_id, district_id, place, mobile]) is False:
+            return http.HttpResponseForbidden("缺少必要参数")
+        if not re.match(r'^1[345789]\d{9}$', mobile):
+            return http.HttpResponseForbidden("mobile格式错误")
+        if tel:
+            if not re.match(r'^(0[0-9]{2,3}-)?([2-9][0-9]{6,7})+(-[0-9]{1,4})?$', tel):
+                return http.HttpResponseForbidden("tel格式错误")
+        if email:
+            if not re.match(r'^[a-z0-9][\w\.\-]*@[a-z0-9\-]+(\.[a-z]{2,5}){1,2}$', email):
+                return http.HttpResponseForbidden("email格式错误")
+                # 修改
+        try:
+            Address.objects.filter(id=address_id).update(
+                title=title,
+                receiver=receiver,
+                province_id=province_id,
+                city_id=city_id,
+                district_id=district_id,
+                place=place,
+                mobile=mobile,
+                tel=tel,
+                email=email
+            )
+        except Exception as e:
+            logger.error(e)
+            return http.JsonResponse({'code': RETCODE.PARAMERR, 'errmsg': '修改失败'})
+        # 获取修改后模型对象
+        address_model = Address.objects.get(id=address_id)
+        address_dict = {
+            'id': address_model.id,
+            'title': address_model.title,
+            'receiver': address_model.receiver,
+            'province_id': address_model.province.id,
+            'province': address_model.province.name,
+            'city_id': address_model.city.id,
+            'city': address_model.city.name,
+            'district_id': address_model.district.id,
+            'district': address_model.district.name,
+            'place': address_model.place,
+            'mobile': address_model.mobile,
+            'tel': address_model.tel,
+            'email': address_model.email
+        }
+        # 响应
+        return http.JsonResponse({'code': RETCODE.OK, 'errmsg': '修改地址成功', 'address': address_dict})
+
+    def delete(self, request, address_id):
+        """删除地址"""
+        # 获取删除address_id
+        try:
+            address = Address.objects.get(id=address_id)
+            # 修改数据库中is_delete为True
+            address.is_deleted = True
+            address.save()
+        except Exception as e:
+            logger.error(e)
+            return http.JsonResponse({'code': RETCODE.PARAMERR, 'errmsg': 'address_id不存在'})
+        # 响应
+        return http.JsonResponse({'code': RETCODE.OK, 'errmsg': '删除地址成功'})
+
+
+class DefaultAddressView(LoginRequiredView):
+    """修改默认收货地址"""
+
+    def put(self, request, address_id):
+        try:
+            address = Address.objects.get(id=address_id)
+            user = request.user
+            user.default_address = address
+            user.save()
+            return http.JsonResponse({'code': RETCODE.OK, 'errmsg': '设置默认地址成功'})
+        except Exception as e:
+            logger.error(e)
+            return http.JsonResponse({'code': RETCODE.PARAMERR, 'errmsg': '设置默认地址失败'})
+
+
+class UpdateAddressTitleView(LoginRequiredView):
+    """修改收货地址标题"""
+
+    def put(self, request, address_id):
+        json_dict = json.loads(request.body.decode())
+        title = json_dict.get('title')
+        if title is None:
+            return http.JsonResponse({'code': RETCODE.PARAMERR, 'errmsg': '缺少必传参数'})
+        try:
+            address = Address.objects.get(id=address_id)
+            address.title = title
+            address.save()
+            return http.JsonResponse({'code': RETCODE.OK, 'errmsg': '修改成功'})
+        except Exception as e:
+            logger.error(e)
+            return http.JsonResponse({'code': RETCODE.PARAMERR, 'errmsg': '修改失败'})
+
+class ChangePasswordView(LoginRequiredView):
+    """修改密码"""
     def get(self,request):
-        return render(request, 'user_center_site.html')
+        """展示界面"""
+        return render(request,'user_center_pass.html')
+
+    def post(self,request):
+        """接收表单"""
+        query_dict = request.POST
+        old_pwd = query_dict.get('old_pwd')
+        new_pwd = query_dict.get('new_pwd')
+        new_cpwd = query_dict.get('new_cpwd')
+        # 校验
+        if all([old_pwd,new_pwd,new_cpwd]) is False:
+            return http.HttpResponseForbidden("缺少必传参数")
+        user = request.user
+        if user.check_password(old_pwd) is False:
+            return render(request,'user_center_pass.html',{'oringin_pwd_errmsg':'原密码错误'})
+        if not re.match(r'^[0-9A-Za-z]{8,20}$',new_pwd):
+            return  http.HttpResponseForbidden("密码最短8位，最长20位")
+        if new_cpwd != new_pwd:
+            return http.HttpResponseForbidden("两次密码输入不一致")
+        # 修改密码：user.set_password
+        user.set_password(new_pwd)
+        user.save()
+        # 清除登录中状态
+        logout(request)
+        # 清除cookie中username
+        response = redirect('/login/')
+        response.delete_cookie('username')
+        # 重定向到login界面
+        return response
 
