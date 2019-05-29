@@ -37,10 +37,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    'users',
-    'oauth',
-    'areas'
-
+    'users.apps.UsersConfig',  # 用户模块
+    'oauth.apps.OauthConfig',  # qq登录模块
+    'areas.apps.AreasConfig',  # 地址模块
+    'contents.apps.ContentsConfig',  # 首页模块
+    'goods.apps.GoodsConfig',  # 商品模块
 
 ]
 

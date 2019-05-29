@@ -190,13 +190,13 @@ class AddressView(LoginRequiredView):
                 'tel': address_model.tel,
                 'email': address_model.email
             })
-        print(address_list)
+        # print(address_list)
         # 外层包装
         context = {
             'addresses': address_list,
             'default_address_id': user.default_address_id
         }
-        print(context)
+        # print(context)
         # 渲染
         return render(request, 'user_center_site.html', context)
 
