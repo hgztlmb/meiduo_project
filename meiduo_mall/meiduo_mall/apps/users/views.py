@@ -3,6 +3,8 @@ from django import http
 from django.views import View
 import re, json, logging
 from django.contrib.auth import login, authenticate, logout, mixins
+
+from goods.models import SKU
 from .utils import generate_email_verify_url, check_verify_token
 from .models import User, Address
 from meiduo_mall.utils.response_code import RETCODE
@@ -382,26 +384,28 @@ class UpdateAddressTitleView(LoginRequiredView):
             logger.error(e)
             return http.JsonResponse({'code': RETCODE.PARAMERR, 'errmsg': '修改失败'})
 
+
 class ChangePasswordView(LoginRequiredView):
     """修改密码"""
-    def get(self,request):
-        """展示界面"""
-        return render(request,'user_center_pass.html')
 
-    def post(self,request):
+    def get(self, request):
+        """展示界面"""
+        return render(request, 'user_center_pass.html')
+
+    def post(self, request):
         """接收表单"""
         query_dict = request.POST
         old_pwd = query_dict.get('old_pwd')
         new_pwd = query_dict.get('new_pwd')
         new_cpwd = query_dict.get('new_cpwd')
         # 校验
-        if all([old_pwd,new_pwd,new_cpwd]) is False:
+        if all([old_pwd, new_pwd, new_cpwd]) is False:
             return http.HttpResponseForbidden("缺少必传参数")
         user = request.user
         if user.check_password(old_pwd) is False:
-            return render(request,'user_center_pass.html',{'oringin_pwd_errmsg':'原密码错误'})
-        if not re.match(r'^[0-9A-Za-z]{8,20}$',new_pwd):
-            return  http.HttpResponseForbidden("密码最短8位，最长20位")
+            return render(request, 'user_center_pass.html', {'oringin_pwd_errmsg': '原密码错误'})
+        if not re.match(r'^[0-9A-Za-z]{8,20}$', new_pwd):
+            return http.HttpResponseForbidden("密码最短8位，最长20位")
         if new_cpwd != new_pwd:
             return http.HttpResponseForbidden("两次密码输入不一致")
         # 修改密码：user.set_password
@@ -415,3 +419,55 @@ class ChangePasswordView(LoginRequiredView):
         # 重定向到login界面
         return response
 
+
+class UserBrowsHistoryView(LoginRequiredView):
+    """用户商品浏览记录"""
+
+    def post(self, request):
+        # 接收请求体中的sku_id
+        json_dict = json.loads(request.body.decode())
+        sku_id = json_dict.get("sku_id")
+        # 检验sku_id是否真实
+        try:
+            sku = SKU.objects.get(id=sku_id)
+        except SKU.DoesNotExist:
+            return http.HttpResponseForbidden("商品不存在")
+        # 创建redis连接对象
+        redis_conn = get_redis_connection('history')
+        # 创建管道
+        pl = redis_conn.pipeline()
+        # 获取用户并拼接key
+        user = request.user
+        key = "history_%s" % user.id
+        # 去重
+        pl.lrem(key, 0, sku_id)
+        # 添加到列表开头
+        pl.lpush(key, sku_id)
+        # 截取列表前5个
+        pl.ltrim(key, 0, 4)
+        # 执行管道
+        pl.execute()
+        # 响应
+        return http.JsonResponse({"code": RETCODE.OK, "errmsg": "OK"})
+
+    def get(self, request):
+        """获取浏览记录并返回前端展示"""
+        # 获取当前登录对象
+        user = request.user
+        # 创建数据库连接
+        redis_conn = get_redis_connection("history")
+        # 获取用户所有redis中储存的浏览记录列表
+        sku_ids = redis_conn.lrange("history_%s" % user.id, 0, -1)
+        # 创建列表保存字典
+        sku_list = []
+        # 根据浏览记录列表中sku_id获取sku对象模型存入字典
+        for sku_id in sku_ids:
+            sku_model = SKU.objects.get(id=sku_id)
+            sku_list.append({
+                "id": sku_model.id,
+                "name": sku_model.name,
+                "default_image_url": sku_model.default_image.url,
+                "price": sku_model.price
+            })
+        # 响应
+        return http.JsonResponse({"code":RETCODE.OK,"errmsg":"OK","skus":sku_list})

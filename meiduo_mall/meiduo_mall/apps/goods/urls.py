@@ -13,17 +13,14 @@ Including another URLconf
     1. Import the include() function: from django.conf.urls import url, include
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
-from django.conf.urls import url, include
-from django.contrib import admin
+from django.conf.urls import url
+from . import views
 
 urlpatterns = [
-    url(r'^admin/', admin.site.urls),
-    url(r'^', include('users.urls', namespace='users')),  # 用户模块
-    url(r'^', include('verifications.urls', namespace='verifications')),  # 验证码模块
-    url(r'^', include('contents.urls', namespace='contents')),  # 首页模块
-    url(r'^', include('oauth.urls', namespace='oauth')),  # qq登录模块
-    url(r'^', include('areas.urls', namespace='areas')),  # 地址模块
-    url(r'^', include('goods.urls', namespace='goods')),  # 商品模块
-    url(r'^search/', include('haystack.urls')),
+
+    url(r'^list/(?P<category_id>\d+)/(?P<page_num>\d+)/$', views.ListViews.as_view()),
+    url(r'^hot/(?P<category_id>\d+)/$', views.HotSaleView.as_view()),
+    url(r'^detail/(?P<sku_id>\d+)/$', views.DetailView.as_view()),
+    url(r'^visit/(?P<category_id>\d+)/$', views.DetailVisitView.as_view()),
 
 ]
