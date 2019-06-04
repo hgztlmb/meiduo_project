@@ -44,7 +44,7 @@ var vm = new Vue({
                                         +'&payment_amount='+this.payment_amount
                                         +'&pay_method='+this.pay_method;
                         } else if (response.data.code == '4101') {
-                            location.href = '/login/?next=/orders/settlement/';
+                            location.href = '../../apps/orders/settlement/';
                         } else {
                             alert(response.data.errmsg);
                         }

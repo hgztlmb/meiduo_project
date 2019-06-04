@@ -26,7 +26,7 @@ urlpatterns = [
     url(r'^info/$', views.UserInfoView.as_view(),name='info'),
     url(r'^emails/$', views.EmailView.as_view()),
     url(r'^emails/verification/$', views.VerifyEmailUrl.as_view()),
-    url(r'^addresses/$', views.AddressView.as_view()),
+    url(r'^addresses/$', views.AddressView.as_view(),name='address'),
     url(r'^addresses/create/$', views.CreateAdderssView.as_view()),
     url(r'^addresses/(?P<address_id>\d+)/$', views.UpdateDestroyAddressView.as_view()),
     url(r'^addresses/(?P<address_id>\d+)/default/$', views.DefaultAddressView.as_view()),

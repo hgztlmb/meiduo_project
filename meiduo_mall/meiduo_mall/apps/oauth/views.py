@@ -1,9 +1,11 @@
 import re
-from django.shortcuts import render,redirect
+from django.shortcuts import render, redirect
 from django.views import View
 from QQLoginTool.QQtool import OAuthQQ
 from django.conf import settings
 from django_redis import get_redis_connection
+
+from carts.utils import merge_cart_cookie_to_redis
 from meiduo_mall.utils.response_code import RETCODE
 from django import http
 import logging
@@ -11,14 +13,15 @@ from django.contrib.auth import login
 
 from users.models import User
 from .models import OAuthQQUser
-from .utils import generate_openid_signature,check_openid_signature
-
+from .utils import generate_openid_signature, check_openid_signature
 
 logger = logging.getLogger('django')
 
+
 class QQAuthURLView(View):
     """qq登录视图"""
-    def get(self,request):
+
+    def get(self, request):
         # 哪里来回哪里去
         next = request.GET.get('next') or '/'
         # 创建qqSDK对象
@@ -29,12 +32,13 @@ class QQAuthURLView(View):
         # 获取qq登录界面url
         login_url = auth_qq.get_qq_url()
 
-        return http.JsonResponse({'code':RETCODE.OK,'errmsg':'OK','login_url':login_url})
+        return http.JsonResponse({'code': RETCODE.OK, 'errmsg': 'OK', 'login_url': login_url})
 
 
 class QQAuthView(View):
     """qq登录成功回调处理"""
-    def get(self,request):
+
+    def get(self, request):
         # 获取code
         code = request.GET.get('code')
         # 校验
@@ -59,20 +63,26 @@ class QQAuthView(View):
         # 没有则去绑定
         except OAuthQQUser.DoesNotExist:
             openid = generate_openid_signature(openid)
-            return render(request,'oauth_callback.html',{'openid':openid})
+            return render(request, 'oauth_callback.html', {'openid': openid})
         # 存在则直接登陆成功,获取所关联的用户
         else:
             user = oauth_qq.user
             # 状态保持
-            login(request,user)
+            login(request, user)
             # 响应及重定向来源
             next = request.GET.get('state')
-            response = redirect(next or '/')
+            if next == "/orders/settlement/":
+                merge_cart_cookie_to_redis(request)
+                response = redirect('/carts/')
+            else:
+                response = redirect(next or '/')
+
             # cookie中设置username在状态栏中显示登录用户信息
-            response.set_cookie('username',user.username,max_age=settings.SESSION_COOKIE_AGE)
+            response.set_cookie('username', user.username, max_age=settings.SESSION_COOKIE_AGE)
+            response.delete_cookie("carts")
             return response
 
-    def post(self,request):
+    def post(self, request):
         """绑定用户"""
         # 获取表单
         query_dict = request.POST
@@ -82,7 +92,7 @@ class QQAuthView(View):
         openid = query_dict.get('openid')
         # print(openid)
         # 校验
-        if all([ password, mobile, sms_code]) is False:
+        if all([password, mobile, sms_code]) is False:
             return http.HttpResponse("缺少必要参数")
         if not re.match(r'^[0-9A-Za-z]{8,20}$', password):
             return http.HttpResponse("请输入8-20位密码")
@@ -104,12 +114,11 @@ class QQAuthView(View):
         try:
             user = User.objects.get(mobile=mobile)
         except User.DoesNotExist:
-            user = User.objects.create_user(username=mobile,password=password,mobile=mobile)
+            user = User.objects.create_user(username=mobile, password=password, mobile=mobile)
         else:
             # 校验密码是否正确
             if user.check_password(password) is False:
-                return render(request,'oauth_callback.html',{'account_errmsg':'用户名或密码错误'})
-
+                return render(request, 'oauth_callback.html', {'account_errmsg': '用户名或密码错误'})
 
         # 绑定用户和openid
         OAuthQQUser.objects.create(
@@ -117,10 +126,15 @@ class QQAuthView(View):
             openid=openid
         )
 
-        #创建相应对象及重定向
-        login(request,user)
+        # 创建相应对象及重定向
+        login(request, user)
         next = request.GET.get('state')
-        response = redirect(next or '/')
+        if next == "/orders/settlement/":
+            merge_cart_cookie_to_redis(request)
+            response = redirect('/carts/')
+        else:
+            response = redirect(next or '/')
         # 设置cookie状态栏展示
-        response.set_cookie('username',user,max_age=settings.SESSION_COOKIE_AGE)
+        response.set_cookie('username', user, max_age=settings.SESSION_COOKIE_AGE)
+        response.delete_cookie("carts")
         return response

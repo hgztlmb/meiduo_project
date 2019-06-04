@@ -12,6 +12,8 @@ from django_redis import get_redis_connection
 from django.conf import settings
 from celery_tasks.email.tasks import send_verify_email
 from meiduo_mall.utils.view import LoginRequiredView
+from carts.utils import merge_cart_cookie_to_redis
+
 
 logger = logging.getLogger('django')
 
@@ -101,9 +103,14 @@ class LoginView(View):
             request.session.set_expiry(0)
         # 判断请求来源（url字符串查询）
         next = request.GET.get('next')
-        response = redirect(next or '/')
+        if next == "/orders/settlement/":
+            merge_cart_cookie_to_redis(request)
+            response = redirect('/carts/')
+        else:
+            response = redirect(next or '/')
         # 设置cookie
         response.set_cookie('username', user.username, max_age=settings.SESSION_COOKIE_AGE if remember else None)
+        response.delete_cookie("carts")
         return response
 
 

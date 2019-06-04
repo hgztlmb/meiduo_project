@@ -18,8 +18,6 @@ from . import views
 
 urlpatterns = [
 
-    url(r'^carts/$', views.CarsView.as_view()),
-    url(r'^carts/selection/$', views.CartsSelectAllView.as_view()),
-    url(r'^carts/simple/$', views.CartsSimpleView.as_view()),
+    url(r'^orders/settlement/$', views.OrderSettlementView.as_view()),
 
 ]

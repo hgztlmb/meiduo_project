@@ -19,7 +19,7 @@ var vm = new Vue({
                         // 跳转到支付宝
                         location.href = response.data.alipay_url;
                     } else if (response.data.code == '4101') {
-                        location.href = '/login/?next=/orders/info/1/';
+                        location.href = '../../apps/orders/info/1/';
                     } else {
                         console.log(response.data);
                         alert(response.data.errmsg);
