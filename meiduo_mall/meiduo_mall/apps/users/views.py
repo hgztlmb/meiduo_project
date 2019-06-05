@@ -144,7 +144,7 @@ class EmailView(View):
         if not email:
             return http.JsonResponse({'code': RETCODE.NECESSARYPARAMERR, 'errmsg': '缺少必要参数'})
         if not re.match(r'^[a-z0-9][\w\.\-]*@[a-z0-9\-]+(\.[a-z]{2,5}){1,2}$', email):
-            return http.JsonResponse({'code': RETCODE.EMAILERR, 'errmsg': '邮箱f错误'})
+            return http.JsonResponse({'code': RETCODE.EMAILERR, 'errmsg': '邮箱错误'})
         # 修改邮箱字段
         user = request.user
         User.objects.filter(username=user.username, email='').update(email=email)

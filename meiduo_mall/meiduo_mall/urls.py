@@ -24,8 +24,9 @@ urlpatterns = [
     url(r'^', include('oauth.urls', namespace='oauth')),  # qq登录模块
     url(r'^', include('areas.urls', namespace='areas')),  # 地址模块
     url(r'^', include('goods.urls', namespace='goods')),  # 商品模块
-    url(r'^search/', include('haystack.urls')), # 搜索模块
-    url(r'^', include('carts.urls')), # 购物车模块
-    url(r'^', include('orders.urls')), # 订单模块
+    url(r'^search/', include('haystack.urls')),  # 搜索模块
+    url(r'^', include('carts.urls'), name='carts'),  # 购物车模块
+    url(r'^', include('orders.urls'), name='orders'),  # 订单模块
+    url(r'^', include('payment.urls'), name='payment'),  # 订单模块
 
 ]

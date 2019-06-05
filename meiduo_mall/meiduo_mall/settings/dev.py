@@ -44,7 +44,8 @@ INSTALLED_APPS = [
     'areas.apps.AreasConfig',  # 地址模块
     'contents.apps.ContentsConfig',  # 首页模块
     'goods.apps.GoodsConfig',  # 商品模块
-    'orders.apps.OrdersConfig' # 订单模块
+    'orders.apps.OrdersConfig', # 订单模块
+    'payment.apps.PaymentConfig' # 支付模块
 
 ]
 
@@ -246,4 +247,12 @@ HAYSTACK_CONNECTIONS = {
 
 # 当添加、修改、删除数据时，自动生成索引
 HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
+
+
+
+# 支付宝
+ALIPAY_APPID = '2016093000629371'
+ALIPAY_DEBUG = True  # 表示是沙箱环境还是真实支付环境
+ALIPAY_URL = 'https://openapi.alipaydev.com/gateway.do'
+ALIPAY_RETURN_URL = 'http://www.meiduo.site:8000/payment/status/'
 
