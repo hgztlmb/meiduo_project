@@ -60,9 +60,10 @@ var vm = new Vue({
                         if (response.data.code == '0') {
                             // 删除评价后的商品
                             this.skus.splice(index, 1);
-                            location.href= '../../apps/orders/info/1/'
+                            // location.href= '/orders/info/1/'
+                            // location.href= '/orders/comment/'
                         } else if (response.data.code == '4101') {
-                            location.href = '../../apps/orders/comment/';
+                            location.href = '/orders/comment/';
                         } else {
                             alert(response.data.errmsg);
                         }

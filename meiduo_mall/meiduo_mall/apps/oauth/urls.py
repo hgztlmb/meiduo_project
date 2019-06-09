@@ -18,6 +18,9 @@ from . import views
 
 urlpatterns = [
 
-    url(r'^qq/authorization/$', views.QQAuthURLView.as_view()),
+    url(r'^qq/login/$', views.QQAuthURLView.as_view()),
     url(r'^oauth_callback$', views.QQAuthView.as_view()),
+
+    url(r'^sina/login/$', views.WeiboLoginView.as_view()),
+    url(r'^sina_callback$', views.WeiboAuthView.as_view()),
 ]

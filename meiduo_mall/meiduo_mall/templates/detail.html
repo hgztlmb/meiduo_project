@@ -209,17 +209,28 @@
             </div>
             <div @click="on_tab_content('comment')" class="tab_content" :class="tab_content.comment?'current':''">
                 <ul class="judge_list_con">
-                    <li class="judge_list fl">
+                    <li class="judge_list fl" v-for="comment in comments">
                         <div class="user_info fl">
                             <img src="/static/images/cat.jpg">
-                            <b>潇***啼</b>
+                            <b>[[ comment.username ]]</b>
                         </div>
                         <div class="judge_info fl">
-                            <div class="stars_five"></div>
-                            <div class="judge_detail">
-                                派送非常快，第二年就收到,牛逼。
-                            </div>
+
+
+                <div class="stars fl">
+                    <a class="star_off" :class="comment.score>=1?'light':''"></a>
+					<a class="star_off" :class="comment.score>=2?'light':''"></a>
+					<a class="star_off" :class="comment.score>=3?'light':''"></a>
+					<a class="star_off" :class="comment.score>=4?'light':''"></a>
+					<a class="star_off" :class="comment.score>=5?'light':''"></a>
+                </div>
                         </div>
+
+{#                            <div class="stars_five"></div>#}
+                            <div class="judge_detail">
+                                [[ comment.comment  ]]
+                            </div>
+
                     </li>
                 </ul>
             </div>

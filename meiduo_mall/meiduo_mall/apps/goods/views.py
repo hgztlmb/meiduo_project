@@ -3,6 +3,8 @@ from django.utils import timezone
 from django.views import View
 from django import http
 from contents.utils import get_categories
+from orders.models import OrderGoods, OrderInfo
+from users.models import User
 from .models import GoodsCategory, SKU, GoodsVisitCount
 from .utils import get_breadcrumb
 from django.core.paginator import Paginator, EmptyPage
@@ -124,6 +126,7 @@ class DetailView(View):
 
             spec.spec_options = spec_option_qs  # 把规格下的所有选项绑定到规格对象的spec_options属性上
 
+
         # 包装数据
         context = {
             "categories": get_categories(),
@@ -132,6 +135,8 @@ class DetailView(View):
             "breadcrumb": get_breadcrumb(category),
             "spu": spu,
             "spec_qs": spu_spec_qs,
+
+
         }
         return render(request, "detail.html", context)
 
@@ -161,3 +166,25 @@ class DetailVisitView(View):
         return http.JsonResponse({"code":RETCODE.OK,"errmsg":"OK"})
 
 
+class ShowCommentsView(View):
+    """评论展示"""
+    def get(self,request,sku_id):
+
+        comments_qs = OrderGoods.objects.filter(sku_id=sku_id,is_commented=True)
+        comment_list = []
+        for order_model in comments_qs:
+            user_name = order_model.order.user.username
+            if order_model.is_anonymous == True:
+                user_name = user_name[0:2]+"***"+user_name[-2:-1]
+            comment_list.append({
+                "comment" : order_model.comment,
+                "username":user_name,
+                "score": order_model.score ,
+
+            })
+
+
+
+
+
+        return http.JsonResponse({"code":RETCODE.OK,"errmsg":"OK","comment_list":comment_list})

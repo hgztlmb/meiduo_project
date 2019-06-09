@@ -256,3 +256,8 @@ ALIPAY_DEBUG = True  # 表示是沙箱环境还是真实支付环境
 ALIPAY_URL = 'https://openapi.alipaydev.com/gateway.do'
 ALIPAY_RETURN_URL = 'http://www.meiduo.site:8000/payment/status/'
 
+
+APP_KEY= '3305669385'
+APP_SECRET = '74c7bea69d5fc64f5c3b80c802325276'
+
+REDIRECT_URL = 'http://www.meiduo.site:8000/sina_callback'

@@ -44,6 +44,7 @@
                         <div class="more_input clearfix">
                             <input type="checkbox" v-model="remembered" name="remembered">
                             <label>记住登录</label>
+                            <a href="/find_password">忘记密码</a>
                         </div>
                         <input type="submit" value="登 录" class="input_submit">
                     </form>
@@ -52,6 +53,7 @@
             <div class="third_party">
                 <a @click="qq_login" class="qq_login">QQ</a>
                 <a href="#" class="weixin_login">微信</a>
+                 <a href="#" class="weibo_login" @click="weibo_login">微博</a>
                 <a href="{{ url('users:register') }}" class="register_btn">立即注册</a>
 {#                <a href="/register/" class="register_btn">立即注册</a>#}
             </div>

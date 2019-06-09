@@ -9,7 +9,7 @@ from meiduo_mall.utils.view import LoginRequiredView
 import json
 from django import http
 from meiduo_mall.utils.response_code import RETCODE
-from .models import OrderInfo,OrderGoods
+from .models import OrderInfo, OrderGoods
 from django.utils import timezone
 from django.db import transaction
 
@@ -108,8 +108,13 @@ class OrderCommitView(LoginRequiredView):
                 redis_conn = get_redis_connection("carts")
                 # 获取hash和set数据
                 redis_dict = redis_conn.hgetall("carts_%s" % user.id)
+
                 selected_ids = redis_conn.smembers("selected_%s" % user.id)
-                # 遍历set包装id和count为字典
+                if not selected_ids:
+                    # 遍历set包装id和count为字典
+
+                    transaction.savepoint_rollback(save_point)
+                    return http.JsonResponse({"code": RETCODE.DBERR, "errmsg": "购物车为空"})
                 carts_dict = {}
                 for sku in selected_ids:
                     carts_dict[int(sku)] = int(redis_dict[sku])
@@ -173,18 +178,75 @@ class OrderCommitView(LoginRequiredView):
 
 class OrderSuccessView(LoginRequiredView):
     """订单提交成功界面"""
-    def get(self,request):
+
+    def get(self, request):
         query_dict = request.GET
         order_id = query_dict.get("order_id")
         payment_amount = query_dict.get("payment_amount")
         pay_method = query_dict.get("pay_method")
         try:
-            OrderInfo.objects.get(order_id=order_id,pay_method=pay_method,total_amount=payment_amount)
+            OrderInfo.objects.get(order_id=order_id, pay_method=pay_method, total_amount=payment_amount)
         except Exception:
             return http.HttpResponseForbidden("订单有误")
         context = {
-            "order_id":order_id,
+            "order_id": order_id,
             "payment_amount": payment_amount,
             "pay_method": pay_method
         }
-        return render(request,"order_success.html",context)
+        return render(request, "order_success.html", context)
+
+
+class OrderCommentView(LoginRequiredView, View):
+    """评价界面"""
+    def get(self, request):
+        query_dict = request.GET
+        order_id = query_dict.get("order_id")
+        try:
+            orders = OrderGoods.objects.filter(order_id=order_id,is_commented=False)
+        except OrderGoods.DoesNotExist:
+            return http.HttpResponseForbidden("订单未找到")
+        sku_list = []
+        for sku_qs in orders:
+            sku_model = SKU.objects.get(id=sku_qs.sku_id)
+            sku_list.append({
+                "price": str(sku_model.price),
+                "name": sku_model.name,
+                "display_score": sku_qs.score,
+                # "is_anonymous": "false",
+                # "is_anonymous": sku_qs.is_anonymous.lower(),
+                # "comment": sku_qs.comment,
+                "default_image_url": sku_model.default_image.url,
+                "order_id": order_id,
+                "sku_id": sku_qs.sku_id
+
+            })
+
+        context = {
+            "uncomment_goods_list": sku_list
+        }
+
+        return render(request, "goods_judge.html", context)
+
+    def post(self, request):
+        """提交评论"""
+        json_dict = json.loads(request.body.decode())
+        order_id = json_dict.get("order_id")
+        sku_id = json_dict.get("sku_id")
+        comment = json_dict.get("comment")
+        score = json_dict.get("score")
+        is_anonymous = json_dict.get("is_anonymous")
+        if all([order_id, sku_id, comment, score]) is False:
+            return http.JsonResponse({"code": RETCODE.DBERR, "errmsg": "缺少必传参数"})
+        try:
+            sku = OrderGoods.objects.get(order_id=order_id, sku_id=sku_id)
+        except OrderGoods.DoesNotExist:
+            return http.JsonResponse({"code":RETCODE.DBERR,"errmsg":"评论失败"})
+        sku.comment = comment
+        sku.score = score
+        sku.is_anonymous = is_anonymous
+        sku.is_commented = True
+        sku.save()
+
+        return http.JsonResponse({"code": RETCODE.OK, "errmsg": "提交成功"})
+
+

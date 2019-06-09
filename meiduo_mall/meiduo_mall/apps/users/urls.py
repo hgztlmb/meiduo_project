@@ -33,7 +33,12 @@ urlpatterns = [
     url(r'^addresses/(?P<address_id>\d+)/title/$', views.UpdateAddressTitleView.as_view()),
     url(r'^password/$', views.ChangePasswordView.as_view()),
     url(r'^browse_histories/$', views.UserBrowsHistoryView.as_view()),
-
+    url(r'^orders/info/(?P<page_num>\d+)/$', views.UserOrderView.as_view()),
+    url(r'^find_password/$', views.FindPasswordView.as_view()),
+    url(r'^accounts/(?P<user_name>[a-zA-Z0-9_-]{5,20})/sms/token/$',views.CheckInofView.as_view()),
+    url(r'^sms_codes/$',views.SmsCodeSendView.as_view()),
+    url(r'^accounts/(?P<user_name>[a-zA-Z0-9_-]{5,20})/password/token/$',views.CheckSmsCodeView.as_view()),
+    url(r'^users/(?P<user_id>\d+)/password/$',views.NewPasswordView.as_view()),
 
 
 

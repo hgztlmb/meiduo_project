@@ -1,10 +1,14 @@
+from random import randint
+from celery_tasks.sms.tasks import send_sms_code
 from django.shortcuts import render, redirect
 from django import http
 from django.views import View
 import re, json, logging
 from django.contrib.auth import login, authenticate, logout, mixins
-
+from django.core.paginator import Paginator, EmptyPage
 from goods.models import SKU
+from oauth.utils import generate_openid_signature, check_openid_signature
+from orders.models import OrderInfo, OrderGoods
 from .utils import generate_email_verify_url, check_verify_token
 from .models import User, Address
 from meiduo_mall.utils.response_code import RETCODE
@@ -13,7 +17,6 @@ from django.conf import settings
 from celery_tasks.email.tasks import send_verify_email
 from meiduo_mall.utils.view import LoginRequiredView
 from carts.utils import merge_cart_cookie_to_redis
-
 
 logger = logging.getLogger('django')
 
@@ -477,4 +480,160 @@ class UserBrowsHistoryView(LoginRequiredView):
                 "price": sku_model.price
             })
         # 响应
-        return http.JsonResponse({"code":RETCODE.OK,"errmsg":"OK","skus":sku_list})
+        return http.JsonResponse({"code": RETCODE.OK, "errmsg": "OK", "skus": sku_list})
+
+
+class UserOrderView(LoginRequiredView, View):
+    """订单"""
+    def get(self, request, page_num):
+        user = request.user
+        order_qs = OrderInfo.objects.filter(user_id=user.id)
+        order_list = []
+
+        for order_model in order_qs:
+
+            sku_list = []
+            sku_qs = OrderGoods.objects.filter(order_id=order_model.order_id)
+            for sku_model in sku_qs:
+                sku = SKU.objects.get(id=sku_model.sku_id)
+                sku_list.append({
+                    "name": sku.name,
+                    "price": sku_model.price,
+                    "count": sku_model.count,
+                    "default_image": sku.default_image,
+                    "amount": str(sku.price * sku_model.count)
+
+                })
+
+            order_list.append({
+                "order_id": order_model.order_id,
+                "create_time": order_model.create_time,
+                "sku_list": sku_list,
+                "total_amount": order_model.total_amount,
+                "freight": order_model.freight,
+                "pay_method_name": OrderInfo.PAY_METHOD_CHOICES[order_model.pay_method - 1][1],
+                "status": order_model.status,
+                "status_name": OrderInfo.ORDER_STATUS_CHOICES[order_model.status - 1][1],
+                # "pay_method_name": order_model.pay_method,
+                # "status_name": order_model.status
+
+            }
+            )
+        paginator = Paginator(order_list, 5)
+        # 获取指定页数据
+        try:
+            page_skus = paginator.page(page_num)
+        except EmptyPage:
+            return http.HttpResponse("当前页面不存在")
+        # 获取总页面
+        total_page = paginator.num_pages
+        # print(order_list)
+        context = {
+            "page_orders": page_skus,
+            "page_num": page_num,
+            'total_page': total_page,  # 总页数
+
+        }
+        return render(request, "user_center_order.html", context)
+
+
+class FindPasswordView(View):
+    """找回密码"""
+
+    def get(self, request):
+        return render(request, "find_password.html")
+
+
+class CheckInofView(View):
+    """第一步"""
+    def get(self, request, user_name):
+        query_dict = request.GET
+        text = query_dict.get("text")
+        if all([user_name, text]) is False:
+            return http.JsonResponse({"code": RETCODE, "errmsg": "缺少必传参数"})
+        uuid = query_dict.get("image_code_id")
+        redis_conn = get_redis_connection("verify_code")
+        if not redis_conn.get("img_%s" % uuid):
+            return http.JsonResponse({"code": RETCODE.DBERR, "errmsg": "验证码过期"})
+        user = User.objects.get(username=user_name)
+        mobile = user.mobile
+        access_token = generate_openid_signature(mobile)
+
+        return http.JsonResponse({"code": RETCODE.OK, "errmsg": "OK", "mobile": mobile,"access_token": access_token})
+
+
+class SmsCodeSendView(View):
+    """发短信"""
+    def get(self,request):
+        query_dict = request.GET
+        access_token = query_dict.get("access_token")
+        mobile = check_openid_signature(access_token)
+
+        redis_conn = get_redis_connection('verify_code')
+        # 查询数据库中是否有标志
+        send_flag = redis_conn.get('sms_flag_%s' % mobile)
+        if send_flag:
+            return http.JsonResponse({"message":"error"})
+
+        # 生成短信验证码
+        sms_code = "%06d" % randint(0, 999999)
+        # print(sms_code)
+        logger.info(sms_code)
+        pl = redis_conn.pipeline()
+        pl.setex('sms_%s' % mobile, 300, sms_code)
+        # 设置标志60秒过期，标明该手机号60s内发过一次短信
+        pl.setex('sms_flag_%s' % mobile, 60, 1)
+        pl.execute()
+        send_sms_code.delay(mobile, sms_code)
+        return http.JsonResponse({"message":"OK"})
+
+
+class CheckSmsCodeView(View):
+    """第二步,验证短信"""
+    def get(self,request,user_name):
+        query_dict = request.GET
+
+        sms_code = query_dict.get("sms_code")
+        user = User.objects.get(username=user_name)
+        mobile = user.mobile
+        redis_conn = get_redis_connection('verify_code')
+        sms_code_server = redis_conn.get("sms_%s" % mobile)
+        redis_conn.delete("sms_%s" % mobile)
+        if sms_code_server is None:
+            return http.HttpResponse("短信验证码过期")
+        sms_code_server = sms_code_server.decode()
+        if sms_code_server != sms_code:
+            return http.HttpResponse("短信验证码输入错误")
+        user_id = user.id
+        access_token = generate_openid_signature(mobile)
+        return http.JsonResponse({"code":RETCODE.OK,"errmsg":"OK","user_id":user_id,"access_token":access_token})
+
+class NewPasswordView(View):
+    def post(self,request,user_id):
+        json_dict = json.loads(request.body.decode())
+        new_pwd = json_dict.get('password')
+        new_cpwd = json_dict.get('password2')
+        try:
+            User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return http.HttpResponseForbidden("无此用户")
+        access_token = json_dict.get("access_token")
+        mobile = check_openid_signature(access_token)
+        try:
+            User.objects.get(mobile=mobile)
+        except User.DoesNotExist:
+            return http.HttpResponseForbidden("非法请求")
+        # 校验
+        user = User.objects.get(id=user_id)
+        if all([ new_pwd, new_cpwd]) is False:
+            return http.HttpResponseForbidden("缺少必传参数")
+
+        if not re.match(r'^[0-9A-Za-z]{8,20}$', new_pwd):
+            return http.HttpResponseForbidden("密码最短8位，最长20位")
+        if new_cpwd != new_pwd:
+            return http.HttpResponseForbidden("两次密码输入不一致")
+        # 修改密码：user.set_password
+        user.set_password(new_pwd)
+        user.save()
+
+        return http.JsonResponse({"code":RETCODE.OK,"errmsg":"OK"})
