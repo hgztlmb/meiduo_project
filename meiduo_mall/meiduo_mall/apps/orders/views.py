@@ -245,7 +245,12 @@ class OrderCommentView(LoginRequiredView, View):
         sku.score = score
         sku.is_anonymous = is_anonymous
         sku.is_commented = True
+        sku.sku.comments += 1
+        sku.sku.spu.comments += 1
         sku.save()
+        comments = OrderInfo.objects.get(order_id=order_id)
+        comments.status = 5
+
 
         return http.JsonResponse({"code": RETCODE.OK, "errmsg": "提交成功"})
 

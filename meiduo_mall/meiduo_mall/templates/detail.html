@@ -191,7 +191,7 @@
             <ul class="detail_tab clearfix">
                 <li @click="on_tab_content('detail')" :class="tab_content.detail?'active':''">商品详情</li>
                 <li @click="on_tab_content('pack')" :class="tab_content.pack?'active':''">规格与包装</li>
-                <li @click="on_tab_content('comment')" :class="tab_content.comment?'active':''">商品评价(1)</li>
+                <li @click="on_tab_content('comment')" :class="tab_content.comment?'active':''">商品评价({{ sku.comments }})</li>
                 <li @click="on_tab_content('service')" :class="tab_content.service?'active':''">售后服务</li>
             </ul>
             <div @click="on_tab_content('detail')" class="tab_content" :class="tab_content.detail?'current':''">

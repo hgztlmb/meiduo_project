@@ -37,9 +37,9 @@
                         <div v-show="error_username" class="user_error" v-cloak>请输入正确的用户名或手机号</div>
                         <input type="password" v-model="password" @blur="check_pwd" name="password" class="pass_input"
                                placeholder="请输入密码">
-                        <div v-show="error_pwd" class="pwd_error" v-cloak>密码最少8位，最长20位</div>
+                        <div v-if="error_pwd" class="pwd_error" v-cloak>密码最少8位，最长20位</div>
                         {% if account_errmsg %}
-                            <div class="pwd_error">{{ account_errmsg }}</div>
+                            <div class="pwd_error" v-else>{{ account_errmsg }}</div>
                         {% endif %}
                         <div class="more_input clearfix">
                             <input type="checkbox" v-model="remembered" name="remembered">
