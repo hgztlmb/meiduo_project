@@ -39,7 +39,4 @@ urlpatterns = [
     url(r'^sms_codes/$',views.SmsCodeSendView.as_view()),
     url(r'^accounts/(?P<user_name>[a-zA-Z0-9_-]{5,20})/password/token/$',views.CheckSmsCodeView.as_view()),
     url(r'^users/(?P<user_id>\d+)/password/$',views.NewPasswordView.as_view()),
-
-
-
 ]

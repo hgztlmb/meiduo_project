@@ -223,10 +223,12 @@ var vm = new Vue({
                         withCredentials: true
                     })
                     .then(response => {
+
                         this.step_class['step-4'] = true;
                         this.step_class['step-3'] = false;
                         this.is_show_form_3 = false;
                         this.is_show_form_4 = true;
+
                     })
                     .catch(error => {
                         alert(error.response.data.message);

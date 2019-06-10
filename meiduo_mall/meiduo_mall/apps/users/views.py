@@ -485,6 +485,7 @@ class UserBrowsHistoryView(LoginRequiredView):
 
 class UserOrderView(LoginRequiredView, View):
     """订单"""
+
     def get(self, request, page_num):
         user = request.user
         order_qs = OrderInfo.objects.filter(user_id=user.id)
@@ -546,6 +547,7 @@ class FindPasswordView(View):
 
 class CheckInofView(View):
     """第一步"""
+
     def get(self, request, user_name):
         query_dict = request.GET
         text = query_dict.get("text")
@@ -553,27 +555,50 @@ class CheckInofView(View):
             return http.JsonResponse({"code": RETCODE, "errmsg": "缺少必传参数"})
         uuid = query_dict.get("image_code_id")
         redis_conn = get_redis_connection("verify_code")
+        image_code_server = redis_conn.get('img_%s' % uuid)
+        image_code_client = query_dict.get('text')
+        image_code_server = image_code_server.decode()
+        if image_code_server.lower() != image_code_client.lower():
+            return http.JsonResponse({"code": RETCODE.IMAGECODEERR, "errmsg": "验证码输入错误"},status=400)
         if not redis_conn.get("img_%s" % uuid):
             return http.JsonResponse({"code": RETCODE.DBERR, "errmsg": "验证码过期"})
-        user = User.objects.get(username=user_name)
-        mobile = user.mobile
-        access_token = generate_openid_signature(mobile)
 
-        return http.JsonResponse({"code": RETCODE.OK, "errmsg": "OK", "mobile": mobile,"access_token": access_token})
+
+        try:
+            if re.match(r'^1[3-9]\d{9}$', user_name):
+                # 尝试匹配手机号，成功则将账号输入栏的对应数据库查询项改为mobile
+                user = User.objects.get(mobile=user_name)
+            else:
+                # 否则将账号输入栏的对应数据库查询项设为username
+                user = User.objects.get(username=user_name)
+        except User.DoesNotExist:
+            return http.JsonResponse({"code": RETCODE.USERERR,"errmsg":"账号不存在"},status=404)
+
+
+
+
+
+        mobile = user.mobile
+        access_token = generate_openid_signature([user_name, mobile])
+        mobile = mobile[0:3] + "*" * 4 + mobile[-4:]
+        return http.JsonResponse({"code": RETCODE.OK, "errmsg": "OK", "mobile": mobile, "access_token": access_token})
 
 
 class SmsCodeSendView(View):
     """发短信"""
-    def get(self,request):
+
+    def get(self, request):
         query_dict = request.GET
         access_token = query_dict.get("access_token")
-        mobile = check_openid_signature(access_token)
+        user_info = check_openid_signature(access_token)
+        mobile = user_info[1]
+        user_name = user_info[0]
 
         redis_conn = get_redis_connection('verify_code')
         # 查询数据库中是否有标志
         send_flag = redis_conn.get('sms_flag_%s' % mobile)
         if send_flag:
-            return http.JsonResponse({"message":"error"})
+            return http.JsonResponse({"message": "error"})
 
         # 生成短信验证码
         sms_code = "%06d" % randint(0, 999999)
@@ -585,12 +610,13 @@ class SmsCodeSendView(View):
         pl.setex('sms_flag_%s' % mobile, 60, 1)
         pl.execute()
         send_sms_code.delay(mobile, sms_code)
-        return http.JsonResponse({"message":"OK"})
+        return http.JsonResponse({"message": "OK"})
 
 
 class CheckSmsCodeView(View):
     """第二步,验证短信"""
-    def get(self,request,user_name):
+
+    def get(self, request, user_name):
         query_dict = request.GET
 
         sms_code = query_dict.get("sms_code")
@@ -605,11 +631,12 @@ class CheckSmsCodeView(View):
         if sms_code_server != sms_code:
             return http.HttpResponse("短信验证码输入错误")
         user_id = user.id
-        access_token = generate_openid_signature(mobile)
-        return http.JsonResponse({"code":RETCODE.OK,"errmsg":"OK","user_id":user_id,"access_token":access_token})
+        access_token = generate_openid_signature([user_name,mobile])
+        return http.JsonResponse({"code": RETCODE.OK, "errmsg": "OK", "user_id": user_id, "access_token": access_token})
+
 
 class NewPasswordView(View):
-    def post(self,request,user_id):
+    def post(self, request, user_id):
         json_dict = json.loads(request.body.decode())
         new_pwd = json_dict.get('password')
         new_cpwd = json_dict.get('password2')
@@ -618,22 +645,27 @@ class NewPasswordView(View):
         except User.DoesNotExist:
             return http.HttpResponseForbidden("无此用户")
         access_token = json_dict.get("access_token")
-        mobile = check_openid_signature(access_token)
+        user_info = check_openid_signature(access_token)
+        mobile = user_info[1]
+        user_name = user_info[0]
         try:
             User.objects.get(mobile=mobile)
         except User.DoesNotExist:
             return http.HttpResponseForbidden("非法请求")
         # 校验
         user = User.objects.get(id=user_id)
-        if all([ new_pwd, new_cpwd]) is False:
+        if all([new_pwd, new_cpwd]) is False:
             return http.HttpResponseForbidden("缺少必传参数")
 
         if not re.match(r'^[0-9A-Za-z]{8,20}$', new_pwd):
             return http.HttpResponseForbidden("密码最短8位，最长20位")
         if new_cpwd != new_pwd:
             return http.HttpResponseForbidden("两次密码输入不一致")
+        if authenticate(request, username=user_name, password=new_pwd):
+            return http.JsonResponse({"code": RETCODE.PWDERR, "errmsg": "与原密码重复"},status=400)
+
         # 修改密码：user.set_password
         user.set_password(new_pwd)
         user.save()
 
-        return http.JsonResponse({"code":RETCODE.OK,"errmsg":"OK"})
+        return http.JsonResponse({"code": RETCODE.OK, "errmsg": "OK"})
