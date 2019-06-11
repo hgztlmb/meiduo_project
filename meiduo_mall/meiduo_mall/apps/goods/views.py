@@ -173,7 +173,7 @@ class ShowCommentsView(View):
         comment_list = []
         for order_model in comments_qs:
             user_name = order_model.order.user.username
-            if order_model.is_anonymous == True:
+            if order_model.is_anonymous:
                 user_name = user_name[0:2] + "***" + user_name[-2:-1]
             comment_list.append({
                 "comment": order_model.comment,

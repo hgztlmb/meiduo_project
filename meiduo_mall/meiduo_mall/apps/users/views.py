@@ -559,10 +559,9 @@ class CheckInofView(View):
         image_code_client = query_dict.get('text')
         image_code_server = image_code_server.decode()
         if image_code_server.lower() != image_code_client.lower():
-            return http.JsonResponse({"code": RETCODE.IMAGECODEERR, "errmsg": "验证码输入错误"},status=400)
+            return http.JsonResponse({"code": RETCODE.IMAGECODEERR, "errmsg": "验证码输入错误"}, status=400)
         if not redis_conn.get("img_%s" % uuid):
             return http.JsonResponse({"code": RETCODE.DBERR, "errmsg": "验证码过期"})
-
 
         try:
             if re.match(r'^1[3-9]\d{9}$', user_name):
@@ -572,11 +571,7 @@ class CheckInofView(View):
                 # 否则将账号输入栏的对应数据库查询项设为username
                 user = User.objects.get(username=user_name)
         except User.DoesNotExist:
-            return http.JsonResponse({"code": RETCODE.USERERR,"errmsg":"账号不存在"},status=404)
-
-
-
-
+            return http.JsonResponse({"code": RETCODE.USERERR, "errmsg": "账号不存在"}, status=404)
 
         mobile = user.mobile
         access_token = generate_openid_signature([user_name, mobile])
@@ -631,7 +626,7 @@ class CheckSmsCodeView(View):
         if sms_code_server != sms_code:
             return http.HttpResponse("短信验证码输入错误")
         user_id = user.id
-        access_token = generate_openid_signature([user_name,mobile])
+        access_token = generate_openid_signature([user_name, mobile])
         return http.JsonResponse({"code": RETCODE.OK, "errmsg": "OK", "user_id": user_id, "access_token": access_token})
 
 
@@ -662,7 +657,7 @@ class NewPasswordView(View):
         if new_cpwd != new_pwd:
             return http.HttpResponseForbidden("两次密码输入不一致")
         if authenticate(request, username=user_name, password=new_pwd):
-            return http.JsonResponse({"code": RETCODE.PWDERR, "errmsg": "与原密码重复"},status=400)
+            return http.JsonResponse({"code": RETCODE.PWDERR, "errmsg": "与原密码重复"}, status=400)
 
         # 修改密码：user.set_password
         user.set_password(new_pwd)

@@ -12,10 +12,9 @@ import logging
 from django.contrib.auth import login
 
 from users.models import User
-from .models import OAuthQQUser,OAuthSinaUser
+from .models import OAuthQQUser, OAuthSinaUser
 from .utils import generate_openid_signature, check_openid_signature
 from meiduo_mall.utils.sinaweibopy3 import *
-
 
 logger = logging.getLogger('django')
 
@@ -144,7 +143,8 @@ class QQAuthView(View):
 
 class WeiboLoginView(View):
     """微博登录"""
-    def get(self,request):
+
+    def get(self, request):
         next = request.GET.get('next') or '/'
         # 创建weiboSDK对象
         client = APIClient(app_key=settings.APP_KEY,
@@ -156,6 +156,7 @@ class WeiboLoginView(View):
 
         login_url = client.get_authorize_url()
         return http.JsonResponse({'code': RETCODE.OK, 'errmsg': 'OK', 'login_url': login_url})
+
 
 class WeiboAuthView(View):
     """weibo登录成功回调处理"""
@@ -171,7 +172,6 @@ class WeiboAuthView(View):
                            app_secret=settings.APP_SECRET,
                            redirect_uri=settings.REDIRECT_URL
                            )
-
 
         try:
             result = client.request_access_token(code)

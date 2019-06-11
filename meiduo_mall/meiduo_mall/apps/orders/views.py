@@ -250,6 +250,7 @@ class OrderCommentView(LoginRequiredView, View):
         sku.save()
         comments = OrderInfo.objects.get(order_id=order_id)
         comments.status = 5
+        comments.save()
 
 
         return http.JsonResponse({"code": RETCODE.OK, "errmsg": "提交成功"})
