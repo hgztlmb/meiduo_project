@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 import os, sys
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+from datetime import timedelta
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
@@ -25,7 +27,7 @@ SECRET_KEY = 'q9rjqoy1%t+pwotgx5*1-%g!*1@ai$58b-#-!&&)6ff965w8#1'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['www.meiduo.site']
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 
@@ -38,6 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'haystack',  # 全文检索
+    'corsheaders',
+    'rest_framework',
 
     'users.apps.UsersConfig',  # 用户模块
     'oauth.apps.OauthConfig',  # qq登录模块
@@ -50,10 +54,12 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
+    
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -123,7 +129,7 @@ USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = False
+USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
@@ -259,5 +265,30 @@ ALIPAY_RETURN_URL = 'http://www.meiduo.site:8000/payment/status/'
 
 APP_KEY= '3305669385'
 APP_SECRET = '74c7bea69d5fc64f5c3b80c802325276'
-
 REDIRECT_URL = 'http://www.meiduo.site:8000/sina_callback'
+
+
+CORS_ORIGIN_WHITELIST = (
+    'http://127.0.0.1:8080',
+    'http://localhost:8080',
+    'http://www.meiduo.site:8080',
+    'http://api.meiduo.site:8000'
+)
+CORS_ALLOW_CREDENTIALS = True  # 允许携带cookie
+
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ),
+}
+
+
+
+JWT_AUTH = {
+    'JWT_EXPIRATION_DELTA': timedelta(days=1), # 有效期为1天
+    'JWT_RESPONSE_PAYLOAD_HANDLER': 'meiduo_admin.jwt_response.jwt_response_handler.custom_jwt_response_handler',
+}
