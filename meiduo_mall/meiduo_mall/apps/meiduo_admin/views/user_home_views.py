@@ -1,7 +1,8 @@
 from datetime import timedelta
-from meiduo_admin.serializers.user_admin_info_serializeres import GoodSerializer
+from meiduo_admin.serializers.user_home_serializers import GoodSerializer
 import pytz
 from django.conf import settings
+
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
@@ -11,7 +12,7 @@ from users.models import User
 from goods.models import GoodsVisitCount
 
 
-class UserAdminInfo(ViewSet):
+class UserHomeView(ViewSet):
 
     @action(methods=['get'], detail=False)
     def total_count(self, request):
@@ -74,7 +75,7 @@ class UserAdminInfo(ViewSet):
             "date": date
         })
 
-    @action(methods=["get"],detail=False)
+    @action(methods=["get"], detail=False)
     def month_increment(self, request):
         """
         月增用户统计
@@ -103,8 +104,8 @@ class UserAdminInfo(ViewSet):
             })
         return Response(user_list)
 
-    @action(methods=["get"],detail=False)
-    def goods_day_views(self,request):
+    @action(methods=["get"], detail=False)
+    def goods_day_views(self, request):
         """
         日商品访问量
         :param request:
@@ -122,5 +123,7 @@ class UserAdminInfo(ViewSet):
         """
         date = timezone.now().astimezone(pytz.timezone(settings.TIME_ZONE))
         data = GoodsVisitCount.objects.filter(date=date)
-        ser = GoodSerializer(data,many=True)
+        ser = GoodSerializer(data, many=True)
         return Response(ser.data)
+
+
