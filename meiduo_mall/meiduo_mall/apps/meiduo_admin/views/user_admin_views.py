@@ -1,28 +1,11 @@
 from rest_framework.generics import ListAPIView, CreateAPIView
-from rest_framework.pagination import PageNumberPagination
-from rest_framework.response import Response
+from meiduo_admin.pages import UserPageNum
 from rest_framework.viewsets import ModelViewSet
-
 from meiduo_admin.serializers.user_admin_serializers import UserAdminSerializer
 from users.models import User
 
-# meiduo_admin/users/?keyword=<搜索内容>&page=<页码>&pagesize=<页容量>
-class UserPageNum(PageNumberPagination):
-    page_size = 5
-    page_size_query_param = 'pagesize'
-    max_page_size = 10
 
-    def get_paginated_response(self, data):
-        return Response({
-            "count": self.page.paginator.count,
-            "lists": data,
-            "page": self.page.number,
-            "pages": self.page.paginator.num_pages,
-            "pagesize": self.page_size
-        })
-
-
-class UserAdminView(ListAPIView,CreateAPIView):
+class UserAdminView(ModelViewSet):
     serializer_class = UserAdminSerializer
     pagination_class = UserPageNum
 
