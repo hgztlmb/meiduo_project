@@ -6,7 +6,7 @@ from goods.models import *
 class BrandInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Brand
-        fields = ("id", "name")
+        fields = "__all__"
 
 
 class SPUInfoSerializer(serializers.ModelSerializer):

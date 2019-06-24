@@ -1,4 +1,5 @@
 from rest_framework.generics import *
+from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from goods.models import *
 from meiduo_admin.pages import UserPageNum
@@ -6,16 +7,27 @@ from meiduo_admin.serializers.sku_info_serializers import *
 
 
 class SKUInfoView(ModelViewSet):
-    queryset = SKU.objects.all().order_by("id")
+    queryset = SKU.objects.all()
     serializer_class = SKUInfoSerializer
     pagination_class = UserPageNum
 
     def get_queryset(self):
         keyword = self.request.query_params.get("keyword")
         if keyword:
-            return self.queryset.filter(name__contains=keyword).order_by("id")
+            return self.queryset.filter(name__contains=keyword)
         else:
-            return self.queryset.all().order_by("id")
+            return self.queryset.all()
+
+    # def create(self, request, *args, **kwargs):
+    #     data1 = request.specs.all()
+    #     ser = SKUSpecsSaveSerializer(data1,many=True)
+    #
+    #     return Response(ser.data)
+
+
+# class SKUSpecSaveView(CreateAPIView):
+#     queryset = SKUSpecification.objects.all()
+#     serializer_class = SKUSpecsSaveSerializer
 
 
 class CategoryInfoView(ListAPIView):
@@ -34,5 +46,7 @@ class SPUSpecView(ListAPIView):
 
     def get_queryset(self):
         pk = self.kwargs.get("pk")
-        return self.queryset.filter(spu_id=pk)
-
+        if pk:
+            return self.queryset.filter(spu_id=pk)
+        else:
+            return self.queryset.all()

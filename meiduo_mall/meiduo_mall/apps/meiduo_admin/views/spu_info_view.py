@@ -31,6 +31,7 @@ class CategoryView(ModelViewSet):
         return self.queryset.filter(parent_id=None)
 
 
-class BrandView(ListAPIView):
+class BrandView(ModelViewSet):
     queryset = Brand.objects.all()
     serializer_class = BrandInfoSerializer
+    # pagination_class = UserPageNum

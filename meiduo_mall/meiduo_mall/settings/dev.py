@@ -96,7 +96,7 @@ DATABASES = {
         'PORT': 3306,  # 数据库端口
         'USER': 'lmb',  # 数据库用户名
         'PASSWORD': '123456',  # 数据库用户密码
-        'NAME': 'meiduo'  # 数据库名字,
+        'NAME': 'meiduo_mall'  # 数据库名字,
     }
 }
 

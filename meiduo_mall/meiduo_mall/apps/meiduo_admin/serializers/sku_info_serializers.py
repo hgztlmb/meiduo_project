@@ -17,11 +17,27 @@ class SKUInfoSerializer(serializers.ModelSerializer):
     spu_id = serializers.IntegerField()
     category = serializers.StringRelatedField()
     category_id = serializers.IntegerField()
-    specs = SpecsSerializer(many=True, read_only=True)
+    specs = SpecsSerializer(many=True)
 
     class Meta:
         model = SKU
         fields = "__all__"
+
+    def create(self, validated_data):
+        speces = validated_data.pop("specs")
+        sku = super().create(validated_data)
+        for temp in speces:
+            temp["sku_id"] = sku.id
+            SKUSpecification.objects.create(**temp)
+        return sku
+
+    def update(self, instance, validated_data):
+        speces = validated_data.pop("specs")
+        for temp in speces:
+            m = SKUSpecification.objects.get(sku_id=instance.id, spec_id=temp["spec_id"])
+            m.option_id = temp["option_id"]
+            m.save()
+        return super().update(instance,validated_data)
 
 
 class CategoryInfoSerializer(serializers.ModelSerializer):
@@ -50,3 +66,8 @@ class SPUSpecSerializer(serializers.ModelSerializer):
     class Meta:
         model = SPUSpecification
         fields = ('id', 'name', 'spu_id', 'spu', 'options')
+
+# class SKUSpecsSaveSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = SKUSpecification
+#         fields = "__all__"

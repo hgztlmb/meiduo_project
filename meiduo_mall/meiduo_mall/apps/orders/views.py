@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.views import View
 from django.contrib.auth import mixins
 from django_redis import get_redis_connection
-from goods.models import SKU
+from goods.models import SKU, SPU
 from decimal import Decimal
 from users.models import Address
 from meiduo_mall.utils.view import LoginRequiredView
@@ -245,9 +245,15 @@ class OrderCommentView(LoginRequiredView, View):
         sku.score = score
         sku.is_anonymous = is_anonymous
         sku.is_commented = True
-        sku.sku.comments += 1
-        sku.sku.spu.comments += 1
+        # sku.sku.comments += 1
+        # sku.sku.spu.comments += 1
         sku.save()
+        sku_comments = SKU.objects.get(id=sku_id)
+        sku_comments.comments+=1
+        sku_comments.spu.comments+=1
+        sku_comments.save()
+        sku_comments.spu.save()
+
         comments = OrderInfo.objects.get(order_id=order_id)
         comments.status = 5
         comments.save()
