@@ -38,8 +38,11 @@ class ImageSerializer(serializers.ModelSerializer):
 
         # 4、如果成功，获得fdfs文件标示
         url = result.get("Remote file_id")
-
         validated_data['image'] = url
+        sku_image = SKU.objects.get(id=validated_data['sku'].id)
+        sku_image.default_image = url
+        sku_image.save()
+
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
@@ -60,7 +63,11 @@ class ImageSerializer(serializers.ModelSerializer):
         url = result.get("Remote file_id")
 
         validated_data['image'] = url
-        return super().update(instance, validated_data)
+        result = super().update(instance, validated_data)
+        sku_image = SKU.objects.get(id=validated_data['sku'].id)
+        sku_image.default_image = url
+        sku_image.save()
+        return result
 
 
 class SKUSimpleSerializer(serializers.ModelSerializer):
