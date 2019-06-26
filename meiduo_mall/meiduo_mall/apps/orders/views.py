@@ -245,14 +245,16 @@ class OrderCommentView(LoginRequiredView, View):
         sku.score = score
         sku.is_anonymous = is_anonymous
         sku.is_commented = True
-        # sku.sku.comments += 1
-        # sku.sku.spu.comments += 1
+        sku.sku.comments += 1
+        sku.sku.spu.comments += 1
         sku.save()
-        sku_comments = SKU.objects.get(id=sku_id)
-        sku_comments.comments+=1
-        sku_comments.spu.comments+=1
-        sku_comments.save()
-        sku_comments.spu.save()
+        sku.sku.save()
+        sku.sku.spu.save()
+        # sku_comments = SKU.objects.get(id=sku_id)
+        # sku_comments.comments+=1
+        # sku_comments.spu.comments+=1
+        # sku_comments.save()
+        # sku_comments.spu.save()
 
         comments = OrderInfo.objects.get(order_id=order_id)
         comments.status = 5
