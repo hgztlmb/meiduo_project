@@ -1,5 +1,4 @@
 from rest_framework.generics import *
-from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from goods.models import *
 from meiduo_admin.pages import UserPageNum
@@ -18,16 +17,6 @@ class SKUInfoView(ModelViewSet):
         else:
             return self.queryset.all()
 
-    # def create(self, request, *args, **kwargs):
-    #     data1 = request.specs.all()
-    #     ser = SKUSpecsSaveSerializer(data1,many=True)
-    #
-    #     return Response(ser.data)
-
-
-# class SKUSpecSaveView(CreateAPIView):
-#     queryset = SKUSpecification.objects.all()
-#     serializer_class = SKUSpecsSaveSerializer
 
 
 class CategoryInfoView(ListAPIView):

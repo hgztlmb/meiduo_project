@@ -1,10 +1,10 @@
-
 from rest_framework.viewsets import ModelViewSet
-from goods.models import SKUImage,SKU
+from goods.models import SKUImage, SKU
 from meiduo_admin.serializers.image_serializers import *
 from meiduo_admin.pages import UserPageNum
 from rest_framework.decorators import action
 from rest_framework.response import Response
+
 
 # GET
 # skus/images/
@@ -12,7 +12,6 @@ class ImageViewSet(ModelViewSet):
     queryset = SKUImage.objects.all()
     serializer_class = ImageSerializer
     pagination_class = UserPageNum
-
 
     # GET
     # skus/simple/

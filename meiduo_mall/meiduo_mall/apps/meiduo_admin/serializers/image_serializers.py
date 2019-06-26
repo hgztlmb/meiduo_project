@@ -1,20 +1,16 @@
 from rest_framework import serializers
-from goods.models import SKUImage,SKU
+from goods.models import SKUImage, SKU
 from fdfs_client.client import Fdfs_client
 
 
-
-
 class ImageSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = SKUImage
         fields = [
             'id',
-            'sku', # PrimaryKeyRelatedField(queryset=SKU.objects.all())
+            'sku',  # PrimaryKeyRelatedField(queryset=SKU.objects.all())
             'image'
         ]
-
 
     def create(self, validated_data):
         """
